@@ -73,7 +73,8 @@ class LandCoverDataset(Dataset):
         patch_info = self.patches[idx]
         
         # Dynamically construct path using just the filename to support moving the index between environments
-        img_filename = Path(patch_info["path"]).name
+        # Handle cross-OS parsing (Windows path -> Linux runtime) by explicitly replacing backslashes
+        img_filename = patch_info["path"].replace('\\', '/').split('/')[-1]
         img_path = str(self.images_dir / img_filename)
         
         x, y = patch_info["x"], patch_info["y"]
