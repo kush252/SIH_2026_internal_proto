@@ -29,9 +29,9 @@ def main():
     config = load_config(args.config)
     
     if args.kaggle_dir:
-        config.DATA.kaggle_path = args.kaggle_dir
+        config.DATA.datasets.kaggle.path = args.kaggle_dir
     if args.landcover_dir:
-        config.DATA.landcover_path = args.landcover_dir
+        config.DATA.datasets.landcover.path = args.landcover_dir
     if args.output_dir:
         config.SYSTEM.output_dir = args.output_dir
     
