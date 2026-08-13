@@ -19,8 +19,15 @@ class LandCoverDataset(Dataset):
         self.patches = self._build_or_load_index()
         
     def _build_or_load_index(self):
+        # Check original location first
         if self.index_file.exists():
             with open(self.index_file, 'r') as f:
+                return json.load(f)
+                
+        # Fallback to local working directory if dataset is read-only (e.g. Kaggle /input)
+        local_index_file = Path.cwd() / self.index_file.name
+        if local_index_file.exists():
+            with open(local_index_file, 'r') as f:
                 return json.load(f)
                 
         print("Building patch index for LandCover.ai... This may take a moment.")
@@ -45,8 +52,16 @@ class LandCoverDataset(Dataset):
                 except Exception as e:
                     print(f"Skipping {img_path} due to error: {e}")
                     
-        with open(self.index_file, 'w') as f:
-            json.dump(patches, f)
+        # Try to save the index. If dataset dir is read-only, save locally
+        try:
+            with open(self.index_file, 'w') as f:
+                json.dump(patches, f)
+            print(f"Saved index to {self.index_file}")
+        except (PermissionError, OSError):
+            local_index_file = Path.cwd() / self.index_file.name
+            with open(local_index_file, 'w') as f:
+                json.dump(patches, f)
+            print(f"Dataset directory read-only. Saved index locally to {local_index_file}")
             
         print(f"Built index with {len(patches)} patches.")
         return patches
