@@ -71,7 +71,11 @@ class LandCoverDataset(Dataset):
         
     def __getitem__(self, idx):
         patch_info = self.patches[idx]
-        img_path = patch_info["path"]
+        
+        # Dynamically construct path using just the filename to support moving the index between environments
+        img_filename = Path(patch_info["path"]).name
+        img_path = str(self.images_dir / img_filename)
+        
         x, y = patch_info["x"], patch_info["y"]
         
         try:
