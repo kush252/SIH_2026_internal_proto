@@ -26,9 +26,11 @@ def evaluate(config_path, test_data_path, device):
     model.eval()
     
     # 2. Setup Dataset
-    print(f"Loading Test Dataset from: {test_data_path}")
-    # Temporarily override the config path so it loads from the user's requested test folder
-    config.DATA.dataset_path = test_data_path
+    if test_data_path:
+        print(f"Loading Test Dataset from CLI override: {test_data_path}")
+        config.DATA.dataset_path = test_data_path
+    else:
+        print(f"Loading Test Dataset from config: {config.DATA.dataset_path}")
     
     # is_train=False disables random geometric augmentations
     test_dataset = GenericBinaryDataset(config.DATA.dataset_path, config, is_train=False)
@@ -97,8 +99,10 @@ def evaluate(config_path, test_data_path, device):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate a trained model on a specific test dataset")
     parser.add_argument("--config", type=str, required=True, help="Path to config (e.g. src/configs/phase2_building.yaml)")
-    parser.add_argument("--test_data", type=str, required=True, help="Path to the directory containing new test images & masks")
+    parser.add_argument("--test_data", type=str, default=None, help="Path to the directory containing new test images & masks")
     args = parser.parse_args()
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    # If test_data is not provided via CLI, it will fall back to reading it from the config inside evaluate()
     evaluate(args.config, args.test_data, device)

@@ -20,9 +20,18 @@ def set_seed(seed):
 def main():
     parser = argparse.ArgumentParser(description="Phase 2: Supervised Segmentation Training")
     parser.add_argument("--config", type=str, default="configs/phase2_building.yaml", help="Path to config file")
+    parser.add_argument("--dataset_path", type=str, default=None, help="Override dataset_path in config")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Override Phase 1 encoder checkpoint path")
     args = parser.parse_args()
     
     config = load_config(args.config)
+    
+    # Apply CLI overrides if provided
+    if args.dataset_path:
+        config.DATA.dataset_path = args.dataset_path
+    if args.checkpoint_path:
+        config.MODEL.encoder.checkpoint_path = args.checkpoint_path
+        
     set_seed(config.SYSTEM.seed)
     
     device = torch.device(config.SYSTEM.device if torch.cuda.is_available() else "cpu")
