@@ -161,9 +161,11 @@ class TrueMask2FormerDecoder(nn.Module):
         src_flattened = torch.cat(src_features, dim=1) # [B, sum(H*W), C]
         
         # Initial mask prediction (from learnable queries directly)
-        mask_pred = torch.einsum("bnc,bchw->bnhw", self.mask_embed(query), mask_features)
+        mask_embed_fp32 = self.mask_embed(query).float()
+        mask_features_fp32 = mask_features.float()
+        mask_pred = torch.einsum("bnc,bchw->bnhw", mask_embed_fp32, mask_features_fp32)
         outputs_mask.append(mask_pred)
-        outputs_class.append(self.class_embed(query))
+        outputs_class.append(self.class_embed(query).float())
         
         for i, layer in enumerate(self.layers):
             attn_masks = []
@@ -189,8 +191,9 @@ class TrueMask2FormerDecoder(nn.Module):
             query = layer(query, src_flattened, attn_mask=attn_mask)
             
             # Predict Class and Mask
-            class_logits = self.class_embed(query) # [B, N, num_classes + 1]
-            mask_logits = torch.einsum("bnc,bchw->bnhw", self.mask_embed(query), mask_features) # [B, N, H/4, W/4]
+            class_logits = self.class_embed(query).float() # [B, N, num_classes + 1]
+            mask_embed_fp32 = self.mask_embed(query).float()
+            mask_logits = torch.einsum("bnc,bchw->bnhw", mask_embed_fp32, mask_features_fp32) # [B, N, H/4, W/4]
             
             outputs_class.append(class_logits)
             outputs_mask.append(mask_logits)
