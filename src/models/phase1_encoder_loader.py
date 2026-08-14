@@ -18,8 +18,16 @@ def load_phase1_encoder(config):
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
         state_dict = checkpoint.get('model_state_dict', checkpoint)
         
+        # Handle prefix mismatch: checkpoint has 'patch_embed...' but model expects 'encoder.patch_embed...'
+        mapped_state_dict = {}
+        for k, v in state_dict.items():
+            if not k.startswith('encoder.') and k != 'mask_token':
+                mapped_state_dict[f'encoder.{k}'] = v
+            else:
+                mapped_state_dict[k] = v
+                
         # Load weights with strict=True to ensure architecture matches
-        missing_keys, unexpected_keys = encoder.load_state_dict(state_dict, strict=False)
+        missing_keys, unexpected_keys = encoder.load_state_dict(mapped_state_dict, strict=False)
         
         if missing_keys:
             print(f"WARNING: Missing keys in encoder load: {missing_keys}")
