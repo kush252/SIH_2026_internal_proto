@@ -8,7 +8,7 @@ class MultitaskMetrics:
         
     def reset(self):
         self.stats = {
-            task: {'tp': 0.0, 'fp': 0.0, 'fn': 0.0, 'intersection': 0.0, 'union': 0.0, 'target_sum': 0.0, 'pred_sum': 0.0}
+            task: {'tp': 0.0, 'fp': 0.0, 'fn': 0.0, 'tn': 0.0, 'intersection': 0.0, 'union': 0.0, 'target_sum': 0.0, 'pred_sum': 0.0}
             for task in self.tasks
         }
         
@@ -38,10 +38,12 @@ class MultitaskMetrics:
             tp = intersection
             fp = preds.sum().item() - tp
             fn = targets.sum().item() - tp
+            tn = preds.numel() - tp - fp - fn
             
             self.stats[task]['tp'] += tp
             self.stats[task]['fp'] += fp
             self.stats[task]['fn'] += fn
+            self.stats[task]['tn'] += tn
             self.stats[task]['intersection'] += intersection
             self.stats[task]['union'] += union
             self.stats[task]['target_sum'] += targets.sum().item()
@@ -56,10 +58,12 @@ class MultitaskMetrics:
             dice = (2. * s['intersection']) / (s['pred_sum'] + s['target_sum'] + 1e-6)
             precision = s['tp'] / (s['tp'] + s['fp'] + 1e-6)
             recall = s['tp'] / (s['tp'] + s['fn'] + 1e-6)
+            accuracy = (s['tp'] + s['tn']) / (s['tp'] + s['tn'] + s['fp'] + s['fn'] + 1e-6)
             
             results[f"{task}_iou"] = iou
             results[f"{task}_dice"] = dice
             results[f"{task}_precision"] = precision
             results[f"{task}_recall"] = recall
+            results[f"{task}_accuracy"] = accuracy
             
         return results

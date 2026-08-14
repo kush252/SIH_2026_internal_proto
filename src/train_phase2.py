@@ -20,6 +20,7 @@ def set_seed(seed):
 def main():
     parser = argparse.ArgumentParser(description="Phase 2: Supervised Segmentation Training")
     parser.add_argument("--config", type=str, default="configs/phase2_building.yaml", help="Path to config file")
+    parser.add_argument("--task", type=str, default=None, choices=["building", "road", "water"], help="Override task class (dynamically configures model)")
     parser.add_argument("--dataset_path", type=str, default=None, help="Override dataset_path in config")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Override Phase 1 encoder checkpoint path")
     parser.add_argument("--resume", type=str, default=None, help="Path to phase2_latest.pt to resume training")
@@ -28,6 +29,11 @@ def main():
     config = load_config(args.config)
     
     # Apply CLI overrides if provided
+    if args.task:
+        config.DATA.classes = {'background': [0, 0, 0], args.task: [255, 255, 255]}
+        config.LOSS.weights = {args.task: 1.0}
+        config.SYSTEM.output_dir = f"outputs_phase2_{args.task}"
+        
     if args.dataset_path:
         config.DATA.dataset_path = args.dataset_path
     if args.checkpoint_path:
