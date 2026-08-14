@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 from .metrics import MultitaskMetrics
-from losses.multitask_loss import MultiTaskLoss
+from losses.multitask_loss import SetCriterion
 import time
 
 class Phase2Trainer:
@@ -14,7 +14,7 @@ class Phase2Trainer:
         self.val_loader = val_loader
         self.device = device
         
-        self.criterion = MultiTaskLoss(config).to(device)
+        self.criterion = SetCriterion(config).to(device)
         self.metrics = MultitaskMetrics(list(config.LOSS.weights.keys()))
         
         # Differential Learning Rates
