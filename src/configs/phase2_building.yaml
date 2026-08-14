@@ -1,12 +1,10 @@
 DATA:
-  svamitva_path: "d:/Kush/2nd Year/Hackathons/SIH/data/kaggle_svamitva/Svamitva/FilteredData"
+  dataset_path: "d:/Kush/2nd Year/Hackathons/SIH/data/kaggle_svamitva/Svamitva/FilteredData"
   image_size: 512
   
   classes:
     background: [0, 0, 0]
-    building: [255, 0, 0]
-    road: [200, 255, 0]
-    water: [0, 110, 255]
+    building: [255, 255, 255] # Adjust based on your binary mask color
 
 MODEL:
   encoder:
@@ -52,8 +50,6 @@ OPTIMIZER:
 LOSS:
   weights:
     building: 1.0
-    road: 1.0
-    water: 1.0
   bce_weight: 5.0
   dice_weight: 5.0
   class_weight: 2.0
@@ -62,4 +58,4 @@ LOSS:
 SYSTEM:
   seed: 42
   device: "cuda"
-  output_dir: "outputs_phase2"
+  output_dir: "outputs_phase2_building"

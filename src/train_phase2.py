@@ -6,9 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from utils.config import load_config
-from datasets.svamitva_dataset import SvamitvaDataset
-from datasets.target_builder import TargetBuilder
-from datasets.splits import get_svamitva_splits
+from datasets.generic_binary_dataset import GenericBinaryDataset
 from models.task_heads import Phase2MultiTaskModel
 from training.trainer_phase2 import Phase2Trainer
 
@@ -21,7 +19,7 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser(description="Phase 2: Supervised Segmentation Training")
-    parser.add_argument("--config", type=str, default="configs/phase2.yaml", help="Path to config file")
+    parser.add_argument("--config", type=str, default="configs/phase2_building.yaml", help="Path to config file")
     args = parser.parse_args()
     
     config = load_config(args.config)
@@ -31,13 +29,10 @@ def main():
     print(f"Using device: {device}")
     
     # 1. Dataset & Splits
-    print("Setting up dataset...")
-    train_files, val_files, test_files = get_svamitva_splits(config.DATA.svamitva_path)
+    print(f"Setting up dataset from {config.DATA.dataset_path}...")
     
-    target_builder = TargetBuilder(config)
-    
-    train_dataset = SvamitvaDataset(config.DATA.svamitva_path, train_files, target_builder, config, is_train=True)
-    val_dataset = SvamitvaDataset(config.DATA.svamitva_path, val_files, target_builder, config, is_train=False)
+    train_dataset = GenericBinaryDataset(config.DATA.dataset_path, config, is_train=True)
+    val_dataset = GenericBinaryDataset(config.DATA.dataset_path, config, is_train=False)
     
     train_loader = DataLoader(
         train_dataset, 
