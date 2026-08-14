@@ -36,8 +36,8 @@ TRAINING:
   epochs: 100
   batch_size: 8
   num_workers: 4
-  use_amp: true
-  clip_grad: 5.0
+  use_amp: false
+  clip_grad: 0.05
   accumulation_steps: 2
 
 OPTIMIZER:
