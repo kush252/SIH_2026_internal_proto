@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--config", type=str, default="configs/phase2_building.yaml", help="Path to config file")
     parser.add_argument("--dataset_path", type=str, default=None, help="Override dataset_path in config")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Override Phase 1 encoder checkpoint path")
+    parser.add_argument("--resume", type=str, default=None, help="Path to phase2_latest.pt to resume training")
     args = parser.parse_args()
     
     config = load_config(args.config)
@@ -77,7 +78,7 @@ def main():
     print("=" * 50 + "\n")
     
     # 3. Trainer
-    trainer = Phase2Trainer(model, config, train_loader, val_loader, device)
+    trainer = Phase2Trainer(model, config, train_loader, val_loader, device, resume_path=args.resume)
     
     # 4. Fit
     trainer.fit()

@@ -7,7 +7,7 @@ from losses.multitask_loss import SetCriterion
 import time
 
 class Phase2Trainer:
-    def __init__(self, model, config, train_loader, val_loader, device):
+    def __init__(self, model, config, train_loader, val_loader, device, resume_path=None):
         self.model = model.to(device)
         self.config = config
         self.train_loader = train_loader
@@ -44,6 +44,15 @@ class Phase2Trainer:
             
         self.best_metric = 0.0
         self.start_epoch = 0
+        
+        if resume_path and os.path.exists(resume_path):
+            print(f"Resuming training from {resume_path}...")
+            checkpoint = torch.load(resume_path, map_location=device)
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.start_epoch = checkpoint['epoch'] + 1
+            self.best_metric = checkpoint.get('best_metric', 0.0)
+            print(f"Resumed at Epoch {self.start_epoch} with Best Metric: {self.best_metric:.4f}")
         
     def train_epoch(self, epoch):
         self.model.train()

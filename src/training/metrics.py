@@ -17,7 +17,14 @@ class MultitaskMetrics:
             if task not in preds_dict or task not in targets_dict:
                 continue
                 
-            probs = torch.sigmoid(preds_dict[task])
+            raw_preds = preds_dict[task]
+            
+            # If the predictions are already probabilities [0, 1] (e.g. from Mask2Former), don't apply sigmoid again.
+            if raw_preds.min() >= 0.0 and raw_preds.max() <= 1.0:
+                probs = raw_preds
+            else:
+                probs = torch.sigmoid(raw_preds)
+                
             preds = (probs > self.threshold).float()
             targets = targets_dict[task].float()
             
