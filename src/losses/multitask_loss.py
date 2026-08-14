@@ -99,6 +99,10 @@ class SetCriterion(nn.Module):
                      self.bce_weight * cost_mask + 
                      self.dice_weight * cost_dice)
                      
+            if torch.isnan(C_mat).any() or torch.isinf(C_mat).any():
+                print(f"[WARNING] NaN/Inf detected in Cost Matrix! Sanitizing...")
+                C_mat = torch.nan_to_num(C_mat, nan=100.0, posinf=100.0, neginf=-100.0)
+                
             C_mat = C_mat.cpu().numpy()
             
             src_ind, tgt_ind = linear_sum_assignment(C_mat)
