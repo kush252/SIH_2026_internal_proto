@@ -33,16 +33,28 @@ class GenericBinaryDataset(Dataset):
         self._apply_split()
 
     def _discover_files(self):
+        print(f"[DEBUG] Checking dataset path: {self.data_dir.absolute()}")
+        print(f"[DEBUG] Path exists: {self.data_dir.exists()}")
+        
         # Pattern 1: SVAMITVA (Images/ and Masks/ subdirectories)
-        if (self.data_dir / "Images").exists() and (self.data_dir / "Masks").exists():
-            img_files = sorted(glob(str(self.data_dir / "Images" / "*")))
+        images_dir = self.data_dir / "Images"
+        masks_dir = self.data_dir / "Masks"
+        
+        print(f"[DEBUG] Images dir exists: {images_dir.exists()}")
+        print(f"[DEBUG] Masks dir exists: {masks_dir.exists()}")
+        
+        if images_dir.exists() and masks_dir.exists():
+            print("[DEBUG] Detected SVAMITVA Pattern.")
+            img_files = sorted(glob(str(images_dir / "*")))
+            print(f"[DEBUG] Found {len(img_files)} files in Images directory.")
+            
             for img_p in img_files:
                 name = Path(img_p).name
-                mask_p = self.data_dir / "Masks" / name
+                mask_p = masks_dir / name
                 # Handle edge case where teammate code uses "Mask" inside string
                 if not mask_p.exists():
                     name_replaced = name.replace("Image", "Mask")
-                    mask_p = self.data_dir / "Masks" / name_replaced
+                    mask_p = masks_dir / name_replaced
                 
                 if mask_p.exists():
                     self.image_paths.append(img_p)
@@ -50,6 +62,7 @@ class GenericBinaryDataset(Dataset):
                     
         # Pattern 2: DeepGlobe (Images and masks in same dir: 123_sat.jpg, 123_mask.png)
         else:
+            print("[DEBUG] Detected DeepGlobe Pattern (or folder doesn't exist).")
             sat_files = sorted(glob(str(self.data_dir / "*_sat.jpg")))
             for sat_p in sat_files:
                 mask_p = sat_p.replace("_sat.jpg", "_mask.png")
@@ -58,7 +71,10 @@ class GenericBinaryDataset(Dataset):
                     self.mask_paths.append(mask_p)
                     
         if len(self.image_paths) == 0:
-            raise FileNotFoundError(f"Could not find valid image/mask pairs in {self.data_dir}")
+            raise FileNotFoundError(
+                f"Could not find valid image/mask pairs in {self.data_dir}. "
+                f"Please verify this path exists on Kaggle using: !ls \"{self.data_dir}\""
+            )
             
     def _apply_split(self):
         # Pair them to shuffle together
