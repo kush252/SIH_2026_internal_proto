@@ -176,6 +176,11 @@ class TrueMask2FormerDecoder(nn.Module):
             
             attn_mask = torch.cat(attn_masks, dim=-1) # [B, N, sum(H*W)]
             
+            # Prevent all-True rows which cause NaN in softmax
+            # If a query has all True (all pixels masked out), unmask everything (all False)
+            all_true = attn_mask.all(dim=-1, keepdim=True)
+            attn_mask = attn_mask.masked_fill(all_true, False)
+            
             # PyTorch MultiheadAttention expects attn_mask of shape [B * nheads, N, S]
             attn_mask = attn_mask.unsqueeze(1).repeat(1, layer.cross_attn.num_heads, 1, 1) # [B, nheads, N, S]
             attn_mask = attn_mask.view(-1, query.size(1), src_flattened.size(1)) # [B*nheads, N, S]

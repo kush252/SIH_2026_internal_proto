@@ -49,12 +49,17 @@ class Phase2MultiTaskModel(nn.Module):
         # Get Swin-T multi-scale features
         features = self.encoder(x)
         
-        # Format features to B C H W
+        import math
         formatted_features = []
         for feat in features:
             if feat.dim() == 4:
                 if feat.shape[-1] in [96, 192, 384, 768]:
                     feat = feat.permute(0, 3, 1, 2).contiguous()
+            elif feat.dim() == 3:
+                # [B, H*W, C] -> [B, C, H, W]
+                B, HW, C = feat.shape
+                H = int(math.sqrt(HW))
+                feat = feat.view(B, H, H, C).permute(0, 3, 1, 2).contiguous()
             formatted_features.append(feat)
             
         # 1. Pixel Decoder

@@ -9,15 +9,7 @@ def load_phase1_encoder(config):
     encoder_cfg = config.MODEL.encoder
     
     print(f"Instantiating Swin Encoder: {encoder_cfg.name}...")
-    encoder = SwinEncoder(
-        img_size=config.DATA.image_size,
-        patch_size=encoder_cfg.patch_size,
-        in_chans=3,
-        embed_dim=encoder_cfg.embed_dim,
-        depths=encoder_cfg.depths,
-        num_heads=encoder_cfg.num_heads,
-        window_size=encoder_cfg.window_size
-    )
+    encoder = SwinEncoder(config)
     
     checkpoint_path = encoder_cfg.checkpoint_path
     print(f"Loading Phase 1 weights from: {checkpoint_path}")

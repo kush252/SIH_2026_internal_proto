@@ -59,8 +59,22 @@ def main():
     )
     
     # 2. Model setup
-    print("Initializing Phase 2 Model...")
+    print("\nInitializing Phase 2 Model...")
     model = Phase2MultiTaskModel(config)
+    
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    
+    print("=" * 50)
+    print("TRAINING SUMMARY")
+    print("=" * 50)
+    print(f"Dataset      : {config.DATA.dataset_path}")
+    print(f"Train Images : {len(train_dataset)}")
+    print(f"Val Images   : {len(val_dataset)}")
+    print(f"Batch Size   : {config.TRAINING.batch_size}")
+    print(f"Total Params : {total_params:,}")
+    print(f"Trainable    : {trainable_params:,}")
+    print("=" * 50 + "\n")
     
     # 3. Trainer
     trainer = Phase2Trainer(model, config, train_loader, val_loader, device)

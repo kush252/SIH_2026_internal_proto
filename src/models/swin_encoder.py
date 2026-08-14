@@ -8,14 +8,15 @@ class SwinEncoder(nn.Module):
         
         # Load Swin-T
         self.encoder = timm.create_model(
-            config.MODEL.name,
-            pretrained=config.MODEL.pretrained,
+            config.MODEL.encoder.name,
+            pretrained=config.MODEL.encoder.pretrained,
             num_classes=0, # Remove classification head
+            img_size=config.DATA.image_size
         )
         
         # SimMIM learnable mask token applied at the embedding level
         # For Swin, the embedding dimension is config.MODEL.embed_dim (96 for Swin-T)
-        self.mask_token = nn.Parameter(torch.zeros(1, 1, config.MODEL.embed_dim))
+        self.mask_token = nn.Parameter(torch.zeros(1, 1, config.MODEL.encoder.embed_dim))
         nn.init.trunc_normal_(self.mask_token, mean=0., std=.02)
         
     def forward(self, x, mask=None):
@@ -49,10 +50,10 @@ class SwinEncoder(nn.Module):
             x = self.encoder.pos_drop(x)
         
         # 3. Forward through Swin blocks
+        features = []
         for layer in self.encoder.layers:
             x = layer(x)
+            features.append(x)
             
-        x = self.encoder.norm(x)
-        
-        # Return features: [B, 3136, 768] (for Swin-T)
-        return x
+        # Return multiscale features
+        return features
