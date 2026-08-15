@@ -96,11 +96,11 @@ class Trainer:
                 'epoch': epoch,
                 'model_state_dict': self.model.state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
-                'f1': f1
+                'f1': f1_macro
             }, save_path)
             print(f"Saved new best model to {save_path}")
             
-        return {'loss': total_loss/len(self.val_loader), 'acc': acc, 'f1': f1, 'cm': cm.tolist()}
+        return {'loss': total_loss/len(self.val_loader), 'acc': acc, 'f1': f1_macro, 'cm': cm.tolist()}
 
     def fit(self, num_epochs):
         history = {'train': [], 'val': []}
