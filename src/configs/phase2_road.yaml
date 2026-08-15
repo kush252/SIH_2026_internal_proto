@@ -34,7 +34,7 @@ AUGMENTATION:
 
 TRAINING:
   epochs: 100
-  batch_size: 16
+  batch_size: 8
   num_workers: 4
   use_amp: false
   clip_grad: 0.05

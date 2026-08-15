@@ -7,6 +7,8 @@ from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
 import random
 from glob import glob
+import json
+from PIL import ImageDraw
 
 class GenericBinaryDataset(Dataset):
     """
@@ -62,13 +64,37 @@ class GenericBinaryDataset(Dataset):
                     
         # Pattern 2: DeepGlobe (Images and masks in same dir: 123_sat.jpg, 123_mask.png)
         else:
-            print("[DEBUG] Detected DeepGlobe Pattern (or folder doesn't exist).")
             sat_files = sorted(glob(str(self.data_dir / "*_sat.jpg")))
-            for sat_p in sat_files:
-                mask_p = sat_p.replace("_sat.jpg", "_mask.png")
-                if os.path.exists(mask_p):
-                    self.image_paths.append(sat_p)
-                    self.mask_paths.append(mask_p)
+            if len(sat_files) > 0:
+                print("[DEBUG] Detected DeepGlobe Pattern.")
+                for sat_p in sat_files:
+                    mask_p = sat_p.replace("_sat.jpg", "_mask.png")
+                    if os.path.exists(mask_p):
+                        self.image_paths.append(sat_p)
+                        self.mask_paths.append(mask_p)
+            
+            # Pattern 3: BONAI JSON Pattern (Images and JSON labels in same dir or images/labels dir)
+            else:
+                json_files = sorted(glob(str(self.data_dir / "*.json")) + glob(str(self.data_dir / "labels" / "*.json")))
+                if len(json_files) > 0:
+                    print("[DEBUG] Detected BONAI JSON Pattern.")
+                    for json_p in json_files:
+                        name = Path(json_p).stem
+                        # check for image in data_dir
+                        img_p_png = self.data_dir / f"{name}.png"
+                        img_p_jpg = self.data_dir / f"{name}.jpg"
+                        
+                        # sometimes images are in 'images' folder if labels are in 'labels'
+                        if "labels" in json_p:
+                            img_p_png = Path(json_p.replace("labels", "images").replace(".json", ".png"))
+                            img_p_jpg = Path(json_p.replace("labels", "images").replace(".json", ".jpg"))
+                            
+                        if img_p_png.exists():
+                            self.image_paths.append(str(img_p_png))
+                            self.mask_paths.append(json_p)
+                        elif img_p_jpg.exists():
+                            self.image_paths.append(str(img_p_jpg))
+                            self.mask_paths.append(json_p)
                     
         if len(self.image_paths) == 0:
             raise FileNotFoundError(
@@ -149,10 +175,27 @@ class GenericBinaryDataset(Dataset):
         
         try:
             img = Image.open(img_path).convert('RGB')
-            # Open mask, but support L (grayscale) or RGB
-            mask_img = Image.open(mask_path)
-            if mask_img.mode != 'RGB':
+            
+            if mask_path.endswith('.json'):
+                # Render BONAI JSON polygon mask on the fly
+                with open(mask_path, 'r') as f:
+                    data = json.load(f)
+                
+                mask_img = Image.new('L', (img.width, img.height), 0)
+                draw = ImageDraw.Draw(mask_img)
+                
+                for ann in data.get('annotations', []):
+                    if 'footprint' in ann:
+                        poly = ann['footprint']
+                        if len(poly) >= 6: # Need at least 3 points (x,y)
+                            draw.polygon(poly, outline=255, fill=255)
+                            
                 mask_img = mask_img.convert('RGB')
+            else:
+                # Open mask, but support L (grayscale) or RGB
+                mask_img = Image.open(mask_path)
+                if mask_img.mode != 'RGB':
+                    mask_img = mask_img.convert('RGB')
                 
             img_tensor, mask_np = self.apply_transform(img, mask_img)
             targets = self.build_binary_targets(mask_np)
