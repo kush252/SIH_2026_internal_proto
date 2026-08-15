@@ -95,6 +95,9 @@ class Phase2MultiTaskModel(nn.Module):
         # Exclude background class (the last channel)
         semantic_logits = semantic_logits[:, :-1]
         
+        # Clamp to [0, 1] to prevent query overlap from exceeding 1.0 and triggering sigmoid in metrics
+        semantic_logits = torch.clamp(semantic_logits, min=0.0, max=1.0)
+        
         # Upsample to original resolution
         semantic_logits = F.interpolate(semantic_logits, size=x.shape[-2:], mode='bilinear', align_corners=False)
         

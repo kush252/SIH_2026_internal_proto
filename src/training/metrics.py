@@ -19,9 +19,10 @@ class MultitaskMetrics:
                 
             raw_preds = preds_dict[task]
             
-            # If the predictions are already probabilities [0, 1] (e.g. from Mask2Former), don't apply sigmoid again.
-            if raw_preds.min() >= 0.0 and raw_preds.max() <= 1.0:
-                probs = raw_preds
+            # Mask2Former produces probabilities, but early in training queries can overlap 
+            # causing sums to exceed 1.0. As long as the min is >= 0, it's a probability sum, not a logit.
+            if raw_preds.min() >= 0.0:
+                probs = torch.clamp(raw_preds, min=0.0, max=1.0)
             else:
                 probs = torch.sigmoid(raw_preds)
                 
