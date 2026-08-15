@@ -155,3 +155,27 @@ class Phase2Trainer:
                 self.best_metric = mean_iou
                 torch.save(state, os.path.join(out_dir, 'phase2_best.pt'))
                 print(f"New best model saved with Mean IoU: {mean_iou:.4f}")
+                
+            # Auto-upload to Kaggle at specific epochs without stopping the training loop
+            if epoch in [60, 70, 80, 90, 100]:
+                print(f"\n[Auto-Upload] Reached Epoch {epoch}, updating Kaggle Dataset in the background...")
+                import subprocess
+                try:
+                    # Determine the correct upload folder (road vs building)
+                    if "road" in out_dir:
+                        upload_dir = "/kaggle/working/model_upload_road"
+                    else:
+                        upload_dir = "/kaggle/working/model_upload"
+                        
+                    if os.path.exists(upload_dir):
+                        subprocess.run(["cp", os.path.join(out_dir, "phase2_latest.pt"), upload_dir], check=True)
+                        if os.path.exists(os.path.join(out_dir, "phase2_best.pt")):
+                            subprocess.run(["cp", os.path.join(out_dir, "phase2_best.pt"), upload_dir], check=True)
+                        # We don't want to crash the whole training script if kaggle fails (e.g. rate limits or auth errors),
+                        # so we catch any errors gracefully.
+                        subprocess.run(["kaggle", "datasets", "version", "-p", upload_dir, "-m", f"Auto-update Epoch {epoch}", "--dir-mode", "zip"], check=True)
+                        print(f"[Auto-Upload] ✅ Successfully updated Kaggle Dataset at Epoch {epoch}!")
+                    else:
+                        print(f"[Auto-Upload] ⚠️ Skipped: {upload_dir} does not exist. (Did you run the metadata setup script first?)")
+                except Exception as e:
+                    print(f"[Auto-Upload] ❌ Failed to upload: {e}")
