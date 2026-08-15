@@ -5,8 +5,8 @@ import timm
 class RoofClassifier(nn.Module):
     def __init__(self, model_name='convnext_tiny', num_classes=4, pretrained=True):
         super(RoofClassifier, self).__init__()
-        # Load ConvNeXt Tiny from timm
-        self.backbone = timm.create_model(model_name, pretrained=pretrained)
+        # Load ConvNeXt Tiny from timm with stochastic depth (Drop Path) to fight overfitting
+        self.backbone = timm.create_model(model_name, pretrained=pretrained, drop_path_rate=0.2)
         
         # Replace the classifier head
         self.backbone.reset_classifier(num_classes)
