@@ -46,9 +46,10 @@ class Phase2Trainer:
         self.start_epoch = 0
         
         if resume_path and os.path.exists(resume_path):
+            print(f"==================================================")
             print(f"Resuming training from {resume_path}...")
             # Load to CPU first to prevent CUDA memory fragmentation
-            checkpoint = torch.load(resume_path, map_location='cpu')
+            checkpoint = torch.load(resume_path, map_location='cpu', weights_only=False)
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             self.start_epoch = checkpoint['epoch'] + 1
