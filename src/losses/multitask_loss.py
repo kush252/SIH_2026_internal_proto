@@ -52,10 +52,11 @@ class SetCriterion(nn.Module):
         
         out_prob = class_logits.flatten(0, 1).softmax(-1) # [B*N, C]
         out_mask = mask_logits.flatten(0, 1) # [B*N, H/4, W/4]
-        out_mask = F.interpolate(out_mask.unsqueeze(1), size=targets_dict['building'].shape[-2:], mode='bilinear', align_corners=False).squeeze(1) # [B*N, H, W]
-        out_mask_flat = out_mask.flatten(1) # [B*N, H*W]
-        
         task_names = list(targets_dict.keys()) # ['building', 'road', 'water']
+        target_shape = targets_dict[task_names[0]].shape[-2:]
+        
+        out_mask = F.interpolate(out_mask.unsqueeze(1), size=target_shape, mode='bilinear', align_corners=False).squeeze(1) # [B*N, H, W]
+        out_mask_flat = out_mask.flatten(1) # [B*N, H*W]
         
         for b in range(B):
             tgt_labels = []
