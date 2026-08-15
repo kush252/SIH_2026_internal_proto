@@ -34,11 +34,11 @@ AUGMENTATION:
 
 TRAINING:
   epochs: 100
-  batch_size: 8
+  batch_size: 4
   num_workers: 4
   use_amp: true
   clip_grad: 0.05
-  accumulation_steps: 2
+  accumulation_steps: 4
 
 OPTIMIZER:
   encoder_lr: 1e-5
