@@ -41,23 +41,26 @@ def create_geographic_split(metadata_path, output_dir, train_pct=0.7, val_pct=0.
     print("\nGeographic Groups (Disasters):")
     print(df['geographic_group'].value_counts())
     
-    # 3. Perform group split
-    gss1 = GroupShuffleSplit(n_splits=1, train_size=train_pct, random_state=random_seed)
-    train_idx, temp_idx = next(gss1.split(df, groups=df['geographic_group']))
+    # 3. Perform Stratified Random Split (Not Geographic)
+    # This prevents the massive Val imbalance (825 images vs 33000 images)
+    # and ensures Train, Val, and Test have identical class distributions.
+    from sklearn.model_selection import train_test_split
     
-    train_df = df.iloc[train_idx].copy()
-    temp_df = df.iloc[temp_idx].copy()
-    
+    # First split: 80% Train, 20% Temp
     test_pct = 1.0 - train_pct - val_pct
+    train_df, temp_df = train_test_split(df, test_size=(val_pct + test_pct), 
+                                         stratify=df['phase3_class'], random_state=random_seed)
+    
+    # Second split: 50% Val, 50% Test from the Temp set (resulting in 10% Val, 10% Test overall)
     val_relative_pct = val_pct / (val_pct + test_pct)
-    
-    gss2 = GroupShuffleSplit(n_splits=1, train_size=val_relative_pct, random_state=random_seed)
-    val_idx, test_idx = next(gss2.split(temp_df, groups=temp_df['geographic_group']))
-    
-    val_df = temp_df.iloc[val_idx].copy()
-    test_df = temp_df.iloc[test_idx].copy()
+    val_df, test_df = train_test_split(temp_df, test_size=(1.0 - val_relative_pct), 
+                                       stratify=temp_df['phase3_class'], random_state=random_seed)
     
     # Assign new split labels
+    train_df = train_df.copy()
+    val_df = val_df.copy()
+    test_df = test_df.copy()
+    
     train_df['new_split'] = 'train'
     val_df['new_split'] = 'val'
     test_df['new_split'] = 'test'
