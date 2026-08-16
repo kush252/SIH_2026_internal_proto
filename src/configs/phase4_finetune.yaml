@@ -1,12 +1,23 @@
 MODEL:
   encoder:
-    type: "swin_tiny"
-    checkpoint_path: "" # Not used in Phase 4; we load full Phase 2 checkpoint
+    name: "swin_tiny_patch4_window7_224"
+    pretrained: false
+    patch_size: 4
+    window_size: 7
+    embed_dim: 96
+    depths: [2, 2, 6, 2]
+    num_heads: [3, 6, 12, 24]
+    checkpoint_path: "" # Not used in Phase 4
     out_indices: [0, 1, 2, 3]
+  
   decoder:
-    type: "mask2former"
+    hidden_dim: 256
     num_queries: 100
-    num_classes: 2
+    nheads: 8
+    dim_feedforward: 2048
+    dec_layers: 6
+    pre_norm: false
+    enforce_input_project: false
 
 DATA:
   dataset_path: "d:/Kush/2nd Year/Hackathons/SIH/data/kaggle_svamitva/Svamitva/FilteredData"
