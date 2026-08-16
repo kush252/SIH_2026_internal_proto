@@ -41,7 +41,7 @@ class SvamitvaDataset(Dataset):
         self.target_rgb = config.DATA.classes[task] # e.g., [255, 0, 0]
         
         # Image augmentations
-        self.img_size = config.DATA.img_size
+        self.img_size = config.DATA.image_size
         
         self.train_transforms = T.Compose([
             T.Resize((self.img_size, self.img_size)),

@@ -28,7 +28,7 @@ DATA:
     building: [0, 110, 255]
     road: [255, 0, 0]
     water: [0, 0, 255]
-  img_size: 224
+  image_size: 512
   
 AUGMENTATION:
   flip_prob: 0.5
