@@ -93,9 +93,13 @@ def main():
             b_preds = building_model.semantic_inference(img_tensor, ['building'])
             r_preds = road_model.semantic_inference(img_tensor, ['road'])
             
-    # Extract binary masks (threshold at 0.5)
-    raw_b_mask = (b_preds['building'][0, 0] > 0.5).cpu().numpy().astype(np.uint8)
-    raw_r_mask = (r_preds['road'][0, 0] > 0.5).cpu().numpy().astype(np.uint8)
+    b_conf = b_preds['building'][0, 0].cpu().numpy()
+    r_conf = r_preds['road'][0, 0].cpu().numpy()
+            
+    # Extract binary masks and mathematically resolve overlaps using Confidence Scores!
+    # If a pixel is predicted by both, the model with the higher confidence wins.
+    raw_b_mask = ((b_conf > 0.5) & (b_conf >= r_conf)).astype(np.uint8)
+    raw_r_mask = ((r_conf > 0.5) & (r_conf > b_conf)).astype(np.uint8)
     
     # 4. Post-Processing & Polygon Extraction
     print("Running OpenCV Post-Processing and Size Thresholding...")
