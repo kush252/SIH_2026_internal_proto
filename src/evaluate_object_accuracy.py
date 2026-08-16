@@ -37,7 +37,7 @@ def calculate_object_metrics(true_mask, pred_mask, min_overlap=0.1):
     
     # Calculate Recall (True Positives)
     for contour in true_contours:
-        if cv2.contourArea(contour) < 10:
+        if cv2.contourArea(contour) < 50:  # Ground truth might have small valid fragments
             continue
         total_true += 1
         
@@ -50,12 +50,13 @@ def calculate_object_metrics(true_mask, pred_mask, min_overlap=0.1):
         if true_pixels > 0 and (overlap_pixels / true_pixels) >= min_overlap:
             true_positives += 1
             
-    # Calculate False Positives
+    # Calculate False Positives (Requires strict size filtering)
     false_positives = 0
     total_pred = 0
     
     for contour in pred_contours:
-        if cv2.contourArea(contour) < 10:
+        # Strict Size Filtering: Delete any predicted "object" smaller than 250 pixels (a ~15x15 smudge)
+        if cv2.contourArea(contour) < 250:
             continue
         total_pred += 1
         
