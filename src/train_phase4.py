@@ -19,7 +19,7 @@ def set_seed(seed):
 
 def main():
     parser = argparse.ArgumentParser(description="Phase 4: Svamitva Fine-Tuning")
-    parser.add_argument("--config", type=str, default="configs/phase4_finetune.yaml", help="Path to fine-tune config")
+    parser.add_argument("--config", type=str, default="src/configs/phase4_finetune.yaml", help="Path to fine-tune config")
     parser.add_argument("--task", type=str, required=True, choices=["building", "road", "water"], help="Which task to fine-tune")
     parser.add_argument("--base_model", type=str, required=True, help="Path to Phase 2 best model")
     
