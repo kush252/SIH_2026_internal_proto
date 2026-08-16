@@ -12,6 +12,10 @@ def load_phase1_encoder(config):
     encoder = SwinEncoder(config)
     
     checkpoint_path = encoder_cfg.checkpoint_path
+    if not checkpoint_path:
+        print("No Phase 1 checkpoint path provided (Skipping Phase 1 load, likely Phase 4).")
+        return encoder
+        
     print(f"Loading Phase 1 weights from: {checkpoint_path}")
     
     try:
