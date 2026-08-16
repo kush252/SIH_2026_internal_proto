@@ -18,8 +18,8 @@ class SvamitvaDataset(Dataset):
         self.task = task
         self.is_train = is_train
         
-        self.images_dir = os.path.join(data_dir, 'images')
-        self.masks_dir = os.path.join(data_dir, 'masks')
+        self.images_dir = os.path.join(data_dir, 'Images')
+        self.masks_dir = os.path.join(data_dir, 'Masks')
         
         # Load filenames
         all_files = [f for f in os.listdir(self.images_dir) if f.endswith(('.png', '.jpg'))]
