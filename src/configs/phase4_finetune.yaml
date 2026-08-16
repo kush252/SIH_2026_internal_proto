@@ -1,0 +1,54 @@
+MODEL:
+  encoder:
+    type: "swin_tiny"
+    checkpoint_path: "" # Not used in Phase 4; we load full Phase 2 checkpoint
+    out_indices: [0, 1, 2, 3]
+  decoder:
+    type: "mask2former"
+    num_queries: 100
+    num_classes: 2
+
+DATA:
+  dataset_path: "d:/Kush/2nd Year/Hackathons/SIH/data/kaggle_svamitva/Svamitva/FilteredData"
+  # RGB Mapping for the target class (Defaulting to Red for building, Green for road, Blue for water)
+  # YOU MUST UPDATE THIS ONCE YOU KNOW THE EXACT COLORS IN SVAMITVA MASKS
+  classes:
+    background: [0, 0, 0]
+    building: [0, 110, 255]
+    road: [255, 0, 0]
+    water: [0, 0, 255]
+  img_size: 224
+  
+AUGMENTATION:
+  flip_prob: 0.5
+  rotation_prob: 0.5
+  color_jitter: 0.1
+
+TRAINING:
+  epochs: 15
+  batch_size: 8
+  num_workers: 4
+  use_amp: false
+  clip_grad: 0.05
+  accumulation_steps: 2
+
+OPTIMIZER:
+  # Massively reduced learning rates to prevent destroying Phase 2 weights!
+  encoder_lr: 1e-6
+  decoder_lr: 1e-5
+  head_lr: 1e-5
+  weight_decay: 0.05
+  warmup_epochs: 2
+
+LOSS:
+  weights:
+    building: 1.0 # Will be dynamically overridden by train_phase4.py based on --task
+  bce_weight: 5.0
+  dice_weight: 5.0
+  class_weight: 2.0
+  no_object_weight: 0.1
+
+SYSTEM:
+  seed: 42
+  device: "cuda"
+  output_dir: "outputs_phase4_building"

@@ -1,92 +1,109 @@
 import os
-from pathlib import Path
-from PIL import Image
-import numpy as np
 import torch
+import numpy as np
+from PIL import Image
 from torch.utils.data import Dataset
-import torchvision.transforms.functional as TF
-import random
+import torchvision.transforms as T
 
 class SvamitvaDataset(Dataset):
-    """
-    SVAMITVA Phase 2 supervised segmentation dataset.
-    Loads paired Image and Mask, applies identical augmentations,
-    and returns separated binary masks for each task.
-    """
-    def __init__(self, data_dir, file_list, target_builder, config, is_train=True):
-        self.data_dir = Path(data_dir)
-        self.images_dir = self.data_dir / "Images"
-        self.masks_dir = self.data_dir / "Masks"
-        
-        self.file_list = file_list
-        self.target_builder = target_builder
+    def __init__(self, data_dir, config, task, is_train=True):
+        """
+        data_dir: Path to FilteredData (must contain 'images' and 'masks' folders)
+        config: Loaded config (phase4_finetune.yaml)
+        task: 'building', 'road', or 'water'
+        is_train: True for training, False for validation
+        """
+        self.data_dir = data_dir
         self.config = config
+        self.task = task
         self.is_train = is_train
         
-        self.image_size = config.DATA.image_size
-        self.aug_cfg = config.AUGMENTATION
+        self.images_dir = os.path.join(data_dir, 'images')
+        self.masks_dir = os.path.join(data_dir, 'masks')
         
-    def __len__(self):
-        return len(self.file_list)
+        # Load filenames
+        all_files = [f for f in os.listdir(self.images_dir) if f.endswith(('.png', '.jpg'))]
+        # Basic 80/20 split on the fly using a seeded RNG
+        rng = np.random.RandomState(42)
+        rng.shuffle(all_files)
         
-    def apply_transform(self, img, mask):
-        # Resize to fixed training resolution
-        img = TF.resize(img, [self.image_size, self.image_size], interpolation=TF.InterpolationMode.BILINEAR)
-        # Use NEAREST for mask to avoid interpolating colors
-        mask = TF.resize(mask, [self.image_size, self.image_size], interpolation=TF.InterpolationMode.NEAREST)
-        
+        split_idx = int(len(all_files) * 0.8)
         if self.is_train:
-            # Random Horizontal Flip
-            if random.random() < self.aug_cfg.hflip_prob:
-                img = TF.hflip(img)
-                mask = TF.hflip(mask)
-                
-            # Random Vertical Flip
-            if random.random() < self.aug_cfg.vflip_prob:
-                img = TF.vflip(img)
-                mask = TF.vflip(mask)
-                
-            # Random Rotation (90 degrees multiples to avoid padding issues on borders)
-            if random.random() < 0.5:
-                angle = random.choice([90, 180, 270])
-                img = TF.rotate(img, angle)
-                mask = TF.rotate(mask, angle)
-                
-            # Color jitter (ONLY applied to image)
-            if random.random() < 0.5:
-                img = TF.adjust_brightness(img, 1.0 + (random.random()-0.5)*self.aug_cfg.color_jitter)
-                img = TF.adjust_contrast(img, 1.0 + (random.random()-0.5)*self.aug_cfg.color_jitter)
-
-        # To Tensor (normalizes img to 0-1)
-        img = TF.to_tensor(img)
-        # Masks are handled by target builder, just keep as numpy array for now
-        mask_np = np.array(mask)
+            self.files = all_files[:split_idx]
+        else:
+            self.files = all_files[split_idx:]
+            
+        print(f"Loaded {len(self.files)} Svamitva files for {'Train' if is_train else 'Val'}.")
         
-        return img, mask_np
+        # Get target RGB color from config based on task
+        if task not in config.DATA.classes:
+            raise ValueError(f"Task '{task}' not found in config.DATA.classes")
+        self.target_rgb = config.DATA.classes[task] # e.g., [255, 0, 0]
+        
+        # Image augmentations
+        self.img_size = config.DATA.img_size
+        
+        self.train_transforms = T.Compose([
+            T.Resize((self.img_size, self.img_size)),
+            T.ColorJitter(brightness=config.AUGMENTATION.color_jitter,
+                          contrast=config.AUGMENTATION.color_jitter,
+                          saturation=config.AUGMENTATION.color_jitter),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        
+        self.val_transforms = T.Compose([
+            T.Resize((self.img_size, self.img_size)),
+            T.ToTensor(),
+            T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+
+    def __len__(self):
+        return len(self.files)
 
     def __getitem__(self, idx):
-        filename = self.file_list[idx]
-        img_path = self.images_dir / filename
-        mask_path = self.masks_dir / filename
+        filename = self.files[idx]
+        img_path = os.path.join(self.images_dir, filename)
         
+        # In Svamitva, masks might have different extensions. We try exact match or replace extension with .png
+        mask_filename = filename
+        if not os.path.exists(os.path.join(self.masks_dir, mask_filename)):
+            mask_filename = os.path.splitext(filename)[0] + '.png'
+            
+        mask_path = os.path.join(self.masks_dir, mask_filename)
+        
+        image = Image.open(img_path).convert('RGB')
+        
+        # Try loading mask; if corrupt or missing, return an empty mask
         try:
-            # Load images (drop alpha if RGBA)
-            img = Image.open(img_path).convert('RGB')
-            mask = Image.open(mask_path).convert('RGB')
+            mask_rgb = Image.open(mask_path).convert('RGB')
+            # Resize mask nearest neighbor
+            mask_rgb = mask_rgb.resize((self.img_size, self.img_size), Image.Resampling.NEAREST)
+            mask_arr = np.array(mask_rgb) # (H, W, 3)
             
-            # Apply geometric augmentations identically
-            img_tensor, mask_np = self.apply_transform(img, mask)
-            
-            # Parse color mask into binary target tensors
-            targets = self.target_builder.build_targets(mask_np)
-            
-            return {
-                "image": img_tensor,
-                "targets": targets,
-                "filename": filename
-            }
-            
+            # Extract binary mask based on target RGB color
+            target = np.array(self.target_rgb)
+            # Find pixels where all 3 channels match the target color
+            binary_mask = np.all(mask_arr == target, axis=-1).astype(np.float32)
         except Exception as e:
-            print(f"Error loading {filename}: {e}")
-            # Return next item on failure
-            return self.__getitem__((idx + 1) % len(self))
+            binary_mask = np.zeros((self.img_size, self.img_size), dtype=np.float32)
+            
+        # Apply transforms
+        if self.is_train:
+            # Spatial augmentations must apply to both image and mask equally
+            # We skip rotation/flip for simplicity right now to preserve the mask mappings,
+            # but you can add custom geometric transforms here.
+            image = self.train_transforms(image)
+        else:
+            image = self.val_transforms(image)
+            
+        # (1, H, W)
+        mask_tensor = torch.from_numpy(binary_mask).unsqueeze(0)
+        
+        targets = {self.task: mask_tensor}
+        
+        return {
+            'image': image,
+            'targets': targets,
+            'filename': filename
+        }
